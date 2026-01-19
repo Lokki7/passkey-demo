@@ -1,0 +1,17 @@
+{
+  "name": "passkey-demo-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@simplewebauthn/browser": "^10.0.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
