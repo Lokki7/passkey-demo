@@ -10,8 +10,8 @@ import {
   View,
 } from "react-native";
 
-import { postJson } from "./lib/api";
-import { isPasskeySupported, startAuth, startReg } from "./lib/passkey";
+import { postJson } from "../lib/api";
+import { isPasskeySupported, startAuth, startReg } from "../lib/passkeyClient";
 
 const API_BASE =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
