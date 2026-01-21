@@ -2,17 +2,16 @@ import {
   startAuthentication,
   startRegistration,
 } from "@simplewebauthn/browser";
+import {
+  isPlatformAuthenticatorAvailable,
+  isWebAuthnSupportedInBrowser,
+} from "expo-passkey/web";
 
 export async function isPasskeySupported(): Promise<boolean> {
-  if (typeof window === "undefined") {
-    return false;
-  }
-  if (typeof PublicKeyCredential === "undefined") {
-    return false;
-  }
+  if (!isWebAuthnSupportedInBrowser()) return false;
 
   try {
-    return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    return await isPlatformAuthenticatorAvailable();
   } catch {
     // Some browsers throw; if WebAuthn exists, consider it supported.
     return true;
