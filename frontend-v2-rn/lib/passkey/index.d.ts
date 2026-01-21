@@ -1,7 +1,5 @@
-import * as web from './index.web';
-import * as native from './index.native';
+export declare function isPasskeySupported(): Promise<boolean>;
 
-declare var _test: typeof web;
-declare var _test: typeof native;
+export declare function startReg(options: unknown): Promise<unknown>;
 
-export * from './index.native';
+export declare function startAuth(options: unknown): Promise<unknown>;
