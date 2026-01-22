@@ -11,6 +11,7 @@ import { RP_ID, setCurrentUserIdForHeaders } from "@/lib/const";
 import { authClient } from "@/lib/authClient/index";
 
 function formatError(error: unknown) {
+  console.error("formatError error!!!! ", error);
   if (!error) {
     return "Unknown error";
   }
@@ -31,6 +32,7 @@ function formatError(error: unknown) {
   }
   return "Unknown error";
 }
+
 export default function Index() {
   const [username, setUsername] = useState("");
   const [logs, setLogs] = useState<string[]>([]);
