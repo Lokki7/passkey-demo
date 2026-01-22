@@ -1,6 +1,7 @@
 import Constants from "expo-constants";
 import { useMemo, useState } from "react";
 import {
+  Button,
   Platform,
   Pressable,
   ScrollView,
@@ -11,31 +12,54 @@ import {
 } from "react-native";
 import { postJson } from "../lib/api";
 import { isPasskeySupported, startAuth, startReg } from "../lib/passkey/index";
+import { RP_ID, setCurrentUserIdForHeaders } from "@/lib/const";
+import { authClient } from "@/lib/authClient/index";
 
-const API_BASE =
-  process.env.EXPO_PUBLIC_API_BASE_URL ??
-  (Platform.OS === "android"
-    ? "http://10.0.2.2:3000"
-    : "http://localhost:3000");
-
+function formatError(error: unknown) {
+  if (!error) {
+    return "Unknown error";
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "object") {
+    const maybe = error as { message?: unknown; statusText?: unknown };
+    if (typeof maybe.message === "string" && maybe.message) {
+      return maybe.message;
+    }
+    if (typeof maybe.statusText === "string" && maybe.statusText) {
+      return maybe.statusText;
+    }
+  }
+  return "Unknown error";
+}
 export default function Index() {
   const [username, setUsername] = useState("");
   const [logs, setLogs] = useState<string[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
   const [supported, setSupported] = useState<boolean | null>(null);
-
-  const runtime = useMemo(() => {
-    return {
-      platform: Platform.OS,
-      apiBase: API_BASE,
-      appOwnership: Constants.appOwnership ?? null,
-    };
-  }, []);
 
   function log(message: string) {
     const time = new Date().toLocaleTimeString();
     setLogs((prev) => [`[${time}] ${message}`, ...prev]);
   }
+
+  const ensureSession = async () => {
+    const trimmed = username.trim();
+    if (!trimmed) {
+      throw new Error("Please enter a username.");
+    }
+    const user = {
+      id: trimmed.toLowerCase(),
+      name: trimmed,
+      displayName: trimmed,
+    };
+    setCurrentUserIdForHeaders(user.id);
+    return user;
+  };
 
   async function handleCheckSupport() {
     try {
@@ -48,82 +72,66 @@ export default function Index() {
     }
   }
 
-  async function handleRegister() {
-    const u = username.trim();
-    if (!u) {
-      log("Enter a username first.");
-      return;
-    }
-
-    setBusy(true);
+  const handleRegisterPasskey = async () => {
     try {
+      setIsBusy(true);
       log("Requesting registration options...");
-      const options = await postJson(`${API_BASE}/register/options`, {
-        username: u,
-        displayName: u,
+      const user = await ensureSession();
+
+      if (!user) {
+        throw new Error("No user available for registration.");
+      }
+
+      const response = await authClient.registerPasskey({
+        userId: user.id,
+        userName: user.name,
+        displayName: user.displayName,
+        rpId: RP_ID,
+        rpName: "Passkey Demo",
+        authenticatorSelection: {
+          authenticatorAttachment: "platform",
+          residentKey: "required",
+          userVerification: "required",
+        },
       });
 
-      log("Creating passkey...");
-      const attestation = await startReg(options);
-
-      log("Verifying registration...");
-      const result = await postJson(`${API_BASE}/register/verify`, {
-        username: u,
-        attestation,
-      });
-
-      log(result.verified ? "Passkey registered." : "Registration failed.");
-    } catch (e: any) {
-      log(`Registration error: ${e?.message ?? String(e)}`);
+      if (response.error) {
+        throw new Error(formatError(response.error));
+      }
+      log(`Passkey registered (${response.data?.rpId || RP_ID}).`);
+    } catch (error) {
+      log(`Registration error: ${formatError(error)}`);
     } finally {
-      setBusy(false);
+      setIsBusy(false);
     }
-  }
+  };
 
-  async function handleLogin({ usernameless }: { usernameless: boolean }) {
-    const u = username.trim();
-    if (!usernameless && !u) {
-      log("Enter a username first.");
-      return;
-    }
-
-    setBusy(true);
+  const handleConfirmOperation = async () => {
     try {
-      log(
-        usernameless
-          ? "Requesting authentication options (usernameless)..."
-          : "Requesting authentication options...",
-      );
-      const options = await postJson(
-        `${API_BASE}/auth/options`,
-        usernameless ? {} : { username: u },
-      );
-
-      log("Authenticating with passkey...");
-      const assertion = await startAuth(options);
-
-      log("Verifying authentication...");
-      const result = await postJson(
-        `${API_BASE}/auth/verify`,
-        usernameless ? { assertion } : { username: u, assertion },
-      );
-
-      log(result.verified ? "Authentication OK." : "Authentication failed.");
-    } catch (e: any) {
-      log(`Authentication error: ${e?.message ?? String(e)}`);
+      setIsBusy(true);
+      log("Confirming operation via passkey...");
+      const user = await ensureSession();
+      if (!user) {
+        throw new Error("Failed to get user.");
+      }
+      const response = await authClient.authenticateWithPasskey({
+        userId: user.id,
+        rpId: RP_ID,
+      });
+      if (response.error) {
+        throw new Error(formatError(response.error));
+      }
+      log("Operation confirmed via passkey.");
+    } catch (error) {
+      log(`2FA error: ${formatError(error)}`);
     } finally {
-      setBusy(false);
+      setIsBusy(false);
     }
-  }
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Passkey Demo (Expo)</Text>
-      <Text style={styles.meta}>
-        Platform: {runtime.platform} • API: {runtime.apiBase}
-      </Text>
-      <Text style={styles.meta}>App ownership: {runtime.appOwnership}</Text>
-
       <View style={styles.card}>
         <Text style={styles.label}>Username</Text>
         <TextInput
@@ -133,13 +141,13 @@ export default function Index() {
           autoCorrect={false}
           placeholder="alice"
           style={styles.input}
-          editable={!busy}
+          editable={!isBusy}
         />
 
         <View style={styles.row}>
           <Button
             title="Check support"
-            disabled={busy}
+            disabled={isBusy}
             onPress={handleCheckSupport}
           />
           <Text style={styles.supportText}>
@@ -152,19 +160,15 @@ export default function Index() {
         </View>
 
         <View style={styles.row}>
-          <Button title="Register" disabled={busy} onPress={handleRegister} />
+          <Button
+            title="Register"
+            disabled={isBusy}
+            onPress={handleRegisterPasskey}
+          />
           <Button
             title="Login"
-            disabled={busy}
-            onPress={() => handleLogin({ usernameless: false })}
-          />
-        </View>
-
-        <View style={styles.row}>
-          <Button
-            title="Login (usernameless)"
-            disabled={busy}
-            onPress={() => handleLogin({ usernameless: true })}
+            disabled={isBusy}
+            onPress={handleConfirmOperation}
           />
         </View>
       </View>
@@ -187,26 +191,6 @@ export default function Index() {
         </ScrollView>
       </View>
     </View>
-  );
-}
-
-function Button({
-  title,
-  onPress,
-  disabled,
-}: {
-  title: string;
-  onPress: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <Pressable
-      onPress={disabled ? undefined : onPress}
-      style={[styles.button, disabled && styles.buttonDisabled]}
-      accessibilityRole="button"
-    >
-      <Text style={styles.buttonText}>{title}</Text>
-    </Pressable>
   );
 }
 
