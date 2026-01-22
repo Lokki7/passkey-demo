@@ -5,6 +5,7 @@ import {
   API_BASE_URL,
   currentUserIdForHeaders,
   RP_ID,
+  STORAGE_PREFIX,
 } from "../const";
 
 export const authClient = createAuthClient({
@@ -14,7 +15,7 @@ export const authClient = createAuthClient({
     expoPasskeyClient({
       rpId: RP_ID, // Optional - auto-detected from window.location.hostname
       timeout: 60000, // Optional: WebAuthn operation timeout (default: 60000ms)
-      storagePrefix: "passkey_demo",
+      storagePrefix: STORAGE_PREFIX,
     }),
   ],
   fetchOptions: {

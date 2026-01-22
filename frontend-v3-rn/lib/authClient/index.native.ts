@@ -2,21 +2,21 @@ import { createAuthClient } from "better-auth/react";
 import { expoClient } from "@better-auth/expo/client";
 import { expoPasskeyClient } from "expo-passkey/native";
 import * as SecureStore from "expo-secure-store";
+import { RP_ID, STORAGE_PREFIX } from "../const";
 
 export const authClient = createAuthClient({
   baseURL: process.env.EXPO_PUBLIC_AUTH_BASE_URL,
   plugins: [
     expoClient({
-      scheme: "your-app",
-      storagePrefix: "your_app",
+      scheme: "frontrn",
+      storagePrefix: STORAGE_PREFIX,
       storage: SecureStore,
     }),
     expoPasskeyClient({
-      storagePrefix: "your_app",
-      rpId: "example.com", // Recommended for native - prevents authentication errors
+      storagePrefix: STORAGE_PREFIX,
+      // rpId: RP_ID, // Recommended for native - prevents authentication errors
       timeout: 60000, // Optional: WebAuthn operation timeout (default: 60000ms)
     }),
-    // ... other plugins
   ],
 });
 
