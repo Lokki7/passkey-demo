@@ -1,4 +1,4 @@
-# Passkey demo
+# Passkey demo (Expo + SimpleWebAuthn)
 
 ## Коротко о принципе passkey
 
@@ -9,56 +9,48 @@ Passkey (WebAuthn) — это вход без пароля. При регист�
 проверяет подпись публичным ключом. Так сервер подтверждает, что
 пользователь владеет ключом, не передавая пароль по сети.
 
-Небольшое демо WebAuthn (passkeys) с Node.js‑беком и фронтом на Vite.
+Это демо использует **Expo Passkey** на клиенте и **SimpleWebAuthn** на сервере:
+- бэкенд на Express + `@simplewebauthn/server`
+- фронтенд на Expo (React Native + web) + `expo-passkey`
 
 ## Структура проекта
 
-- `backend/` — Node.js сервер (Express + `@simplewebauthn/server`)
-- `frontend/` — статичный фронт на Vite с авто‑перезагрузкой
+- `backend/` — Node.js сервер (Express + SimpleWebAuthn)
+- `frontend/` — Expo приложение (web/iOS/Android)
 
-## Фронтенд
-
-Файлы:
-- `frontend/index.html` — простая разметка с полем username и кнопками
-- `frontend/src/main.js` — логика запросов, запуск регистрации/аутентификации
-- `frontend/src/style.css` — минимальные стили
-
-Как работает:
-- При регистрации фронт вызывает `POST /register/options`, получает
-  `PublicKeyCredentialCreationOptions` (в них приходит `challenge` от сервера),
-  затем запускает
-  `startRegistration()` из `@simplewebauthn/browser` — это обёртка над
-  `navigator.credentials.create()`. Внутри этого шага устройство генерирует
-  пару ключей и подписывает данные регистрации. Результат (attestation,
-  включая публичный ключ) отправляется на
-  `POST /register/verify`.
-- При аутентификации по username — вызывает `POST /auth/options`, получает
-  `PublicKeyCredentialRequestOptions` (в них тоже есть `challenge`), затем запускает
-  `startAuthentication()` из `@simplewebauthn/browser` — это обёртка над
-  `navigator.credentials.get()`. Устройство подписывает `challenge` закрытым
-  ключом. Результат (assertion) отправляется на
-  `POST /auth/verify`.
-- Для usernameless‑логина есть отдельная кнопка — запрашивает
-  `/auth/options` без username, затем отправляет результат на `/auth/verify`.
-- Статус и ошибки выводятся в лог на странице.
-
-## Бэкенд
+## Фронтенд (Expo)
 
 Файлы:
-- `backend/server.js` — все эндпоинты и логика WebAuthn
+- `frontend/App.js` — UI и вызовы Expo Passkey
+- `frontend/app.json` — схема приложения (`scheme`) и базовые настройки
+- `frontend/babel.config.js` — конфиг Babel для Expo
 
 Как работает:
-- `POST /register/options` — генерирует registration options (RP ID `localhost`),
-  включая `challenge`, `rp`, `user`, `pubKeyCredParams`, `authenticatorSelection`.
-- `POST /register/verify` — проверяет attestation и сохраняет credential:
-  `credentialID` (base64url), `credentialPublicKey`, `counter`, `transports`.
-- `POST /auth/options` — генерирует auth options (`challenge`, `rpId`,
-  `allowCredentials`):
-  - с username — `allowCredentials` ограничен пользователем
-  - без username — usernameless flow
-- `POST /auth/verify` — проверяет assertion: сверяет `challenge`, `origin`,
-  `rpId`, затем проверяет подпись публичным ключом и обновляет `counter`.
-- Все данные хранятся в памяти (Map), при перезапуске всё очищается.
+- Есть две кнопки: **“Зарегистрировать passkey”** и
+  **“Подтвердить операцию (2FA)”**.
+- Регистрация вызывает `authClient.registerPasskey()`.
+- Подтверждение операции вызывает `authClient.authenticateWithPasskey()`.
+
+Переменные окружения для фронта:
+- `EXPO_PUBLIC_API_BASE_URL` — базовый URL API, например
+  `http://localhost:3000`
+- `EXPO_PUBLIC_RP_ID` — RP ID (обычно домен)
+
+## Бэкенд (SimpleWebAuthn)
+
+Файл:
+- `backend/server.js` — SimpleWebAuthn и обработка `/api/passkey/*`
+
+Эндпоинты:
+- `POST /api/passkey/expo-passkey/challenge`
+- `POST /api/passkey/expo-passkey/register`
+- `POST /api/passkey/expo-passkey/authenticate`
+
+Переменные окружения бэка:
+- `PASSKEY_RP_ID` — RP ID (например, `localhost` в dev)
+- `PASSKEY_RP_NAME` — имя RP
+- `PASSKEY_ORIGINS` — список origin, через запятую
+- `SERVICE_URL` — базовый URL сервера (по умолчанию `http://localhost:3000`)
 
 ## Запуск
 
@@ -69,16 +61,16 @@ npm install
 npm run dev
 ```
 
-Фронтенд:
+Фронтенд (Expo):
 ```
 cd /Users/pavel/YouHodler/passkey-demo/frontend
 npm install
-npm run dev
+npm start
 ```
-
-Открыть `http://localhost:5173`.
 
 ## Примечания
 
-- Работает на `localhost` (для WebAuthn это secure context).
-- Данные в памяти, без БД.
+- Для **web** нужен HTTPS (WebAuthn требует secure context).
+- Для **iOS/Android** нужны `associatedDomains` / `assetlinks.json`
+  и корректные `PASSKEY_ORIGINS`.
+- Данные хранятся в памяти (без БД), при перезапуске всё очищается.
