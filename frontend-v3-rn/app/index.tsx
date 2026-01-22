@@ -1,17 +1,12 @@
-import Constants from "expo-constants";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Button,
-  Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { postJson } from "../lib/api";
-import { isPasskeySupported, startAuth, startReg } from "../lib/passkey/index";
 import { RP_ID, setCurrentUserIdForHeaders } from "@/lib/const";
 import { authClient } from "@/lib/authClient/index";
 
@@ -63,7 +58,7 @@ export default function Index() {
 
   async function handleCheckSupport() {
     try {
-      const ok = await isPasskeySupported();
+      const ok = await authClient.isPasskeySupported();
       setSupported(ok);
       log(ok ? "Passkeys supported." : "Passkeys NOT supported.");
     } catch (e: any) {
@@ -82,6 +77,9 @@ export default function Index() {
         throw new Error("No user available for registration.");
       }
 
+      console.log("user=", user);
+      console.log("RP_ID=", RP_ID);
+
       const response = await authClient.registerPasskey({
         userId: user.id,
         userName: user.name,
@@ -96,6 +94,7 @@ export default function Index() {
       });
 
       if (response.error) {
+        console.log("response.error! ", response.error);
         throw new Error(formatError(response.error));
       }
       log(`Passkey registered (${response.data?.rpId || RP_ID}).`);
