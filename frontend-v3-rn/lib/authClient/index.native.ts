@@ -2,10 +2,10 @@ import { createAuthClient } from "better-auth/react";
 import { expoClient } from "@better-auth/expo/client";
 import { expoPasskeyClient } from "expo-passkey/native";
 import * as SecureStore from "expo-secure-store";
-import { RP_ID, STORAGE_PREFIX } from "../const";
+import { API_BASE_URL, RP_ID, STORAGE_PREFIX } from "../const";
 
 export const authClient = createAuthClient({
-  baseURL: process.env.EXPO_PUBLIC_AUTH_BASE_URL,
+  baseURL: API_BASE_URL,
   plugins: [
     expoClient({
       scheme: "frontrn",
