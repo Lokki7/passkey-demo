@@ -14,7 +14,7 @@ export const authClient = createAuthClient({
     }),
     expoPasskeyClient({
       storagePrefix: STORAGE_PREFIX,
-      // rpId: RP_ID, // Recommended for native - prevents authentication errors
+      rpId: RP_ID, // Recommended for native - prevents authentication errors
       timeout: 60000, // Optional: WebAuthn operation timeout (default: 60000ms)
     }),
   ],
