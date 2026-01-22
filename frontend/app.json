@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Passkey Demo",
+    "slug": "passkey-demo",
+    "scheme": "passkey-demo",
+    "ios": {
+      "bundleIdentifier": "com.youhodler.passkeydemo"
+    },
+    "android": {
+      "package": "com.youhodler.passkeydemo"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
