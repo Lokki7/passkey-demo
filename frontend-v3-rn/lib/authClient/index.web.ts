@@ -1,12 +1,7 @@
 import { createAuthClient } from "better-auth/react";
 import { expoPasskeyClient } from "expo-passkey/web";
-import {
-  API_BASE_PATH,
-  API_BASE_URL,
-  currentUserIdForHeaders,
-  RP_ID,
-  STORAGE_PREFIX,
-} from "../const";
+import { API_BASE_PATH, API_BASE_URL, RP_ID, STORAGE_PREFIX } from "../const";
+import { onRequest } from "./utils";
 
 export const authClient = createAuthClient({
   baseURL: API_BASE_URL,
@@ -19,22 +14,7 @@ export const authClient = createAuthClient({
     }),
   ],
   fetchOptions: {
-    onRequest: (context) => {
-      console.log("fetchOptions=", currentUserIdForHeaders);
-      if (currentUserIdForHeaders) {
-        const headers =
-          context.headers instanceof Headers
-            ? new Headers(context.headers)
-            : new Headers(context.headers || {});
-        if (currentUserIdForHeaders) {
-          headers.set("x-user-id", currentUserIdForHeaders);
-        } else {
-          headers.delete("x-user-id");
-        }
-        context.headers = headers;
-      }
-      return context;
-    },
+    onRequest,
   },
 });
 
