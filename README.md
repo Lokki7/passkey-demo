@@ -1,5 +1,7 @@
 # Passkey demo (Expo + SimpleWebAuthn)
 
+# Описание генерил GPT, могут быть неточности
+
 ## Коротко о принципе passkey
 
 Passkey (WebAuthn) — это вход без пароля. При регистрации устройство
